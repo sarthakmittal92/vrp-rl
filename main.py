@@ -8,6 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from multiprocessing import Pool
+from itertools import repeat
 
 from Models.actor import DRL4TSP
 from Tasks import vrp
@@ -52,11 +54,11 @@ def validate(data_loader, actor, reward_fn, render_fn=None, save_dir='.',
     actor.train()
     return np.mean(rewards)
 
-def train(actor, critic, task, num_nodes, train_data, valid_data, reward_fn,
-          render_fn, batch_size, actor_lr, critic_lr, max_grad_norm,
+def train(actor,critic,task, num_nodes, train_data, valid_data,
+          reward_fn,render_fn, batch_size, actor_lr, critic_lr, max_grad_norm,
           **kwargs):
     """Constructs the main actor & critic networks, and performs all training."""
-
+    
     now = '%s' % datetime.datetime.now().time()
     now = now.replace(':', '_')
     save_dir = os.path.join(task, '%d' % num_nodes, now)
@@ -183,7 +185,7 @@ def train_vrp(args):
     print('Starting VRP training')
 
     # Determines the maximum amount of load for a vehicle based on num nodes
-    LOAD_DICT = {10: 20, 20: 30, 50: 40, 100: 50}
+    LOAD_DICT = {3: 10, 10: 20, 20: 30, 50: 40, 100: 50}
     MAX_DEMAND = 9
     STATIC_SIZE = 2 # (x, y)
     DYNAMIC_SIZE = 2 # (load, demand)
@@ -230,7 +232,7 @@ def train_vrp(args):
         critic.load_state_dict(torch.load(path, device))
 
     if not args.test:
-        train(actor, critic, **kwargs)
+        train(actor,critic,**kwargs)
 
     test_data = VehicleRoutingDataset(args.valid_size,
                                       args.num_nodes,
