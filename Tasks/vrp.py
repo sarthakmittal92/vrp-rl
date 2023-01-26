@@ -84,8 +84,8 @@ class VehicleRoutingDataset(Dataset):
 
         if repeat_home.any():
             new_mask[repeat_home.nonzero(), 0] = 1.
-        if (1 - repeat_home).any():
-            new_mask[(1 - repeat_home).nonzero(), 0] = 0.
+        if (torch.logical_not(repeat_home)).any():
+            new_mask[torch.logical_not(repeat_home).nonzero(), 0] = 0.
 
         # ... unless we're waiting for all other samples in a minibatch to finish
         has_no_load = loads[:, 0].eq(0).float()
@@ -132,7 +132,7 @@ class VehicleRoutingDataset(Dataset):
             all_demands[depot.nonzero().squeeze(), 0] = 0.
 
         tensor = torch.cat((all_loads.unsqueeze(1), all_demands.unsqueeze(1)), 1)
-        return torch.tensor(tensor.data, device=dynamic.device)
+        return tensor.data.to(device=dynamic.device).clone().detach().requires_grad_(True)
 
 
 def reward(static, tour_indices):
