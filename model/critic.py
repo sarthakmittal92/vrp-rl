@@ -1,4 +1,4 @@
-from .base import dvc, torch, nn, cuda, F, Encoder
+from .base import torch, nn, F, Encoder
 
 class StateCritic(nn.Module):
     """Estimates the problem complexity.

@@ -45,12 +45,10 @@ class Trainer:
         self.actor.train()
         return np.mean(rewards)
 
-    def train(
-        self, task, num_nodes, train_data, valid_data,
-        batch_size, actor_lr, critic_lr, max_grad_norm,
-        **kwargs
-    ):
+    def train(self, args):
         """Constructs the main actor & critic networks, and performs all training."""
+        l = ['task', 'num_nodes', 'train_data', 'valid_data', 'batch_size', 'actor_lr', 'critic_lr', 'max_grad_norm']
+        task, num_nodes, train_data, valid_data, batch_size, actor_lr, critic_lr, max_grad_norm = map(lambda x: args[x],l)
         now = f'{str(datetime.datetime.now().time())}'.replace(':','_')
         save_dir = os.path.join(task,f'{num_nodes}',now)
         print('Starting training')
@@ -177,9 +175,7 @@ def trainVRP(args):
         critic.load_state_dict(torch.load(path, dvc))
     if not args.test:
         TrainObj = Trainer(actor,critic)
-        TrainObj.train(**kwargs)
-        # with Pool(1) as pool:
-        #     pool.starmap(TrainObj.train,kwargs)
+        TrainObj.train(kwargs)
     test_data = VehicleRoutingDataset(
         args.valid_size,
         args.num_nodes,

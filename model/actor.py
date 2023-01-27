@@ -1,4 +1,4 @@
-from .base import dvc, torch, nn, cuda, F, Encoder, Pointer
+from .base import dvc, torch, nn, F, Encoder, Pointer
 
 class DRL4TSP(nn.Module):
     """Defines the main Encoder, Decoder, and Pointer combinatorial models.
