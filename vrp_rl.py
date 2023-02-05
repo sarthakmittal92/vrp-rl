@@ -15,11 +15,12 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation
+# from matplotlib.animation import FuncAnimation
 import os
 import time
 import datetime
 from argparse import ArgumentParser as ap
+import pickle
 
 dvc = torch.device('cuda' if cuda.is_available() else 'cpu')
 
@@ -478,56 +479,56 @@ class Simulate:
         plt.tight_layout()
         plt.savefig(save_path, bbox_inches='tight', dpi=200)
 
-    def animate(self):
-        """Plots the found solution."""
-        def update(idx):
-            global all_lines
-            for i, line in enumerate(all_lines):
-                if idx >= tours[i].shape[1]:
-                    continue
-                data = tours[i][:, idx]
-                xy_data = line.get_xydata()
-                xy_data = np.vstack((xy_data, np.atleast_2d(data)))
-                line.set_data(xy_data[:, 0], xy_data[:, 1])
-                line.set_linewidth(0.75)
-            return all_lines
-        path = '/usr/bin/ffmpeg'
-        plt.rcParams['animation.ffmpeg_path'] = path
-        plt.close('all')
-        num_plots = min(int(np.sqrt(len(self.tour_indices))), 3)
-        fig, axes = plt.subplots(nrows=num_plots, ncols=num_plots,sharex='col', sharey='row')
-        axes = [a for ax in axes for a in ax]
-        all_lines = []
-        all_tours = []
-        for i, ax in enumerate(axes):
-            # Convert the indices back into a tour
-            idx = self.tour_indices[i]
-            if len(idx.size()) == 1:
-                idx = idx.unsqueeze(0)
-            idx = idx.expand(self.static.size(1), -1)
-            data = torch.gather(self.static[i].data, 1, idx).cpu().numpy()
-            start = self.static[i, :, 0].cpu().data.numpy()
-            x = np.hstack((start[0], data[0], start[0]))
-            y = np.hstack((start[1], data[1], start[1]))
-            cur_tour = np.vstack((x, y))
-            all_tours.append(cur_tour)
-            all_lines.append(ax.plot([], [])[0])
-            ax.scatter(x, y, s=4, c='r', zorder=2)
-            ax.scatter(x[0], y[0], s=20, c='k', marker='*', zorder=3)
-        tours = all_tours
-        anim = FuncAnimation(
-            fig, update,
-            init_func=None,
-            frames=100, interval=200, blit=False,
-            repeat=False
-        )
-        anim.save('line.mp4', dpi=160)
-        plt.show()
-        exit(0)
+    # def animate(self):
+    #     """Plots the found solution."""
+    #     def update(idx):
+    #         global all_lines
+    #         for i, line in enumerate(all_lines):
+    #             if idx >= tours[i].shape[1]:
+    #                 continue
+    #             data = tours[i][:, idx]
+    #             xy_data = line.get_xydata()
+    #             xy_data = np.vstack((xy_data, np.atleast_2d(data)))
+    #             line.set_data(xy_data[:, 0], xy_data[:, 1])
+    #             line.set_linewidth(0.75)
+    #         return all_lines
+    #     path = '/usr/bin/ffmpeg'
+    #     plt.rcParams['animation.ffmpeg_path'] = path
+    #     plt.close('all')
+    #     num_plots = min(int(np.sqrt(len(self.tour_indices))), 3)
+    #     fig, axes = plt.subplots(nrows=num_plots, ncols=num_plots,sharex='col', sharey='row')
+    #     axes = [a for ax in axes for a in ax]
+    #     all_lines = []
+    #     all_tours = []
+    #     for i, ax in enumerate(axes):
+    #         # Convert the indices back into a tour
+    #         idx = self.tour_indices[i]
+    #         if len(idx.size()) == 1:
+    #             idx = idx.unsqueeze(0)
+    #         idx = idx.expand(self.static.size(1), -1)
+    #         data = torch.gather(self.static[i].data, 1, idx).cpu().numpy()
+    #         start = self.static[i, :, 0].cpu().data.numpy()
+    #         x = np.hstack((start[0], data[0], start[0]))
+    #         y = np.hstack((start[1], data[1], start[1]))
+    #         cur_tour = np.vstack((x, y))
+    #         all_tours.append(cur_tour)
+    #         all_lines.append(ax.plot([], [])[0])
+    #         ax.scatter(x, y, s=4, c='r', zorder=2)
+    #         ax.scatter(x[0], y[0], s=20, c='k', marker='*', zorder=3)
+    #     tours = all_tours
+    #     anim = FuncAnimation(
+    #         fig, update,
+    #         init_func=None,
+    #         frames=100, interval=200, blit=False,
+    #         repeat=False
+    #     )
+    #     anim.save('line.mp4', dpi=160)
+    #     plt.show()
+    #     exit(0)
 
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.enabled = False
-print('Detected device {}'.format(dvc))
+print(f'Detected device {dvc}')
 
 class Trainer:
 
@@ -694,13 +695,8 @@ def trainVRP(args):
     TrainObj = Trainer(actor,critic)
     if not args.test:
         TrainObj.train(kwargs)
-    test_data = VehicleRoutingDataset(
-        args.valid_size,
-        args.num_nodes,
-        max_load,
-        MAX_DEMAND,
-        args.seed + 2
-    )
+    with open('data.pkl','rb') as f:
+        test_data = pickle.load(f)
     test_dir = 'test'
     test_loader = DataLoader(test_data, args.batch_size, False, num_workers=0)
     out = TrainObj.validate(test_loader, test_dir, num_plot=5)
